@@ -1,0 +1,18 @@
+# Downloaded SRPMs and build outputs
+.cache/
+rpmbuild/
+*.src.rpm
+*.rpm
+*.tar.gz
+*.log
+*.tmp
+*.swp
+.DS_Store
+
+# Local build artifacts
+BUILD/
+BUILDROOT/
+SOURCES/
+SPECS/
+SRPMS/
+RPMS/
