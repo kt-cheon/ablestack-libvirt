@@ -12,7 +12,15 @@ rpmbuild/
 # Local build artifacts
 BUILD/
 BUILDROOT/
-SOURCES/
-SPECS/
-SRPMS/
-RPMS/
+/SOURCES/
+/SPECS/
+/SRPMS/
+/RPMS/
+
+# Keep repository-managed customizations tracked
+!specs/
+!specs/*.spec
+!patches/
+!patches/*.patch
+!sources/
+!sources/*
