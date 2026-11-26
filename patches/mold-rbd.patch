@@ -1,0 +1,21 @@
+diff --git a/src/storage/storage_backend_rbd.c b/src/storage/storage_backend_rbd.c
+--- a/src/storage/storage_backend_rbd.c
++++ b/src/storage/storage_backend_rbd.c
+@@ -240,9 +240,5 @@
+         if (rc < 0)
+             goto cleanup;
+-
+-        if (virStorageBackendRBDRADOSConfSet(ptr->cluster,
+-                                             "auth_supported", "cephx") < 0)
+-            goto cleanup;
+     } else {
+         VIR_DEBUG("Not using cephx authorization");
+         if (rados_create(&ptr->cluster, NULL) < 0) {
+@@ -250,7 +246,4 @@
+                            _("failed to create the RADOS cluster"));
+             goto cleanup;
+         }
+-        if (virStorageBackendRBDRADOSConfSet(ptr->cluster,
+-                                             "auth_supported", "none") < 0)
+-            goto cleanup;
+     }

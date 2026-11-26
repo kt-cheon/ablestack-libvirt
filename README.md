@@ -1,59 +1,25 @@
-# ABLestack libvirt RPM customization
+# ABLESTACK libvirt RBD RPM
 
-이 저장소는 libvirt와 같은 업스트림 RPM을 커스터마이징할 때, `SRPM` 자체는 Git에서 관리하지 않고 최신 버전을 외부에서 내려받아 재구성하는 운영 방식을 표준화하기 위한 레포입니다.
+Rocky Linux의 최신 libvirt SRPM으로 Mold용 `libvirt-daemon-driver-storage-rbd` RPM을 빌드합니다. 소스 RPM과 빌드 산출물은 Git에서 제외합니다.
 
-## 기본 정책
+## 빌드
 
-- Git에는 커스텀 사양(`spec`)과 패치, 빌드 스크립트만 보관합니다.
-- 최신 `src.rpm`은 `dnf download --source` 또는 배포 저장소에서 가져와 `.cache/srpm/` 아래에 저장합니다.
-- 생성된 빌드 산출물과 SRPM은 Git 추적 대상에서 제외합니다.
-- 실제 커스터마이징은 `specs/*.spec` 와 `patches/*.patch` 로 관리합니다.
-
-## 저장소 구조
-
-```text
-.
-├── README.md
-├── .gitignore
-├── specs/
-│   └── libvirt.spec
-├── patches/
-│   └── 0001-ablestack-customization.patch
-├── scripts/
-│   ├── download_latest_srpm.sh
-│   └── build_custom_rpm.sh
-├── .cache/
-│   └── srpm/         # 다운로드된 최신 SRPM 보관용 (git ignored)
-├── rpmbuild/         # 빌드 결과물 및 산출물 (git ignored)
-└── sources/          # 필요 시 추가 소스 파일 보관용
-```
-
-## 동작 방식
-
-1. 최신 upstream SRPM을 다운로드합니다.
-2. SRPM 안의 원본 소스와 spec 정보를 추출하여 커스텀 작업을 수행합니다.
-3. `Release` 값을 커스텀 값으로 변경하고 필요한 패치를 적용합니다.
-4. 결과물은 `rpmbuild/RPMS` 또는 `rpmbuild/SRPMS` 아래에 생성합니다.
-5. Git에는 커스터마이징된 규격과 스크립트만 남기고, SRPM/빌드 산출물은 제외합니다.
-
-## 빠른 시작
+Podman이 설치된 Linux x86_64에서 실행합니다. 기본값은 실행 중인 Rocky Linux의 릴리스입니다.
 
 ```bash
-# 최신 SRPM 다운로드
-./scripts/download_latest_srpm.sh libvirt
-
-# 커스텀 RPM 빌드
-./scripts/build_custom_rpm.sh
+git clone https://github.com/kt-cheon/ablestack-libvirt.git
+cd ablestack-libvirt
+./scripts/build_latest_rpm.sh
 ```
 
-## 주의사항
+다른 릴리스를 빌드하려면 `./scripts/build_latest_rpm.sh 9.9`처럼 버전을 넘깁니다. 기본 빌드 병렬 작업 수는 6이며 `BUILD_JOBS`로 조절할 수 있습니다.
 
-- `dnf` 또는 `yum` 저장소가 `source` 패키지를 제공해야 합니다.
-- 실제 운영 환경에서는 Red Hat/CentOS Stream 또는 EPEL 등의 소스 저장소를 활성화해 두는 것이 좋습니다.
-- `Release` 값은 배포 정책에 맞게 변경해야 합니다. 예: `1.ablestack`, `2.ablestack` 등으로 versioning 합니다.
+스크립트는 해당 Rocky Linux 컨테이너에서 AppStream 메타데이터를 새로 읽어 최신 SRPM을 받고, 같은 릴리스의 BaseOS, AppStream, CRB 저장소로 빌드 의존성을 설치합니다. 공식 배포 저장소에서 보관된 릴리스는 Vault를 조회합니다. 빌드와 libvirt 자체 테스트가 끝나면 마지막 `RPM:` 행에 결과 경로를 출력합니다. 로그는 각 실행 디렉터리의 `rpmbuild/run.*/build.log`에 있습니다.
 
-## 권장 운영 규칙
+## RBD 수정과 의존성
 
-- upstream SRPM은 Git 저장소에 커밋하지 않습니다.
-- 커스텀 작업은 패치 파일과 spec 변경으로 남깁니다.
-- 자동화가 필요한 경우 CI에서 최신 SRPM을 받아서 `build_custom_rpm.sh` 를 실행하도록 구성합니다.
+`patches/mold-rbd.patch`는 9.8 커스텀 RPM에서 복원했습니다. Glue v20.2.5의 `librados`가 지원하지 않는 `auth_supported` 설정 두 곳을 제거하며, Ceph 사용자와 키 설정은 유지합니다.
+
+공식 SRPM의 spec과 패치를 사용합니다. upstream에서 이미 `auth_supported`를 제거한 경우 그 소스로 계속 빌드합니다. 소스나 spec 변경으로 패치를 적용할 수 없으면 빌드가 중단됩니다. RBD 하위 패키지에만 `.ablestack.1`을 붙이고, 해당 SRPM과 같은 버전의 `libvirt-libs` 및 `libvirt-daemon-driver-storage-core` 의존성을 유지합니다.
+
+이미 받은 SRPM과 빌드 의존성이 있는 경우 `./scripts/build_custom_rpm.sh /path/to/libvirt.src.rpm`으로 그 소스를 바로 빌드할 수 있습니다. `--prepare`를 추가하면 spec과 패치만 준비합니다.
