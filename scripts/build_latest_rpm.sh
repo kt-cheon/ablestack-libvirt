@@ -55,10 +55,9 @@ printf '%%_smp_build_ncpus %s\n' "$jobs" > /root/.rpmmacros
 TOPDIR=/workspace/build bash scripts/build_custom_rpm.sh "$srpm"
 BASH
 
-shopt -s nullglob
-rpms=("$RUN_DIR"/build/libvirt.*/RPMS/x86_64/libvirt-daemon-driver-storage-rbd-*.x86_64.rpm)
-if [[ ${#rpms[@]} != 1 ]]; then
-  printf 'Expected one RBD RPM. See %s/build.log.\n' "$RUN_DIR" >&2
+rpm_path=$(sed -n 's|^Custom RBD RPM: /workspace/||p' "$RUN_DIR/build.log")
+if [[ ! -f "$RUN_DIR/$rpm_path" ]]; then
+  printf 'Unable to find the built RBD RPM. See %s/build.log.\n' "$RUN_DIR" >&2
   exit 1
 fi
-printf 'RPM: %s\n' "${rpms[0]}"
+printf 'RPM: %s\n' "$RUN_DIR/$rpm_path"
